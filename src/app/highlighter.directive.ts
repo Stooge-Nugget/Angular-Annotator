@@ -127,13 +127,30 @@ export class HighlighterDirective implements OnInit, OnDestroy {
       range.setStart(startContainer, a.range.startOffset);
       range.setEnd(endContainer, a.range.endOffset);
 
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
+      const textNodeTree = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
 
-      // Figure way to style selected text and add event handlers to present attached comment.
-      // Text can span across multiple elements.
+      while(textNodeTree.nextNode()) {
+        textNodes.push(textNodeTree.currentNode);
+      }
 
+      const startNodePos = textNodes.indexOf(range.startContainer);
+      const endNodePos = textNodes.indexOf(range.endContainer);
+      const selectedTextNodes = textNodes.slice(startNodePos, endNodePos + 1);
+
+      const lastSelectedNodePos = selectedTextNodes.length - 1;
+      const replaceFirstTextNode = selectedTextNodes[0].splitText(range.startOffset);
+      selectedTextNodes[0] = replaceFirstTextNode;
+      selectedTextNodes[lastSelectedNodePos].splitText(range.endOffset);
+
+      for (let i = 0; i < selectedTextNodes.length; i++) {
+        const wrapper = document.createElement('span');
+        wrapper.className = 'annotation-hl';
+        wrapper.textContent = selectedTextNodes[i].textContent;
+        wrapper.addEventListener('mouseover', e => {console.log(e.target)});
+        selectedTextNodes[i].parentElement.replaceChild(wrapper, selectedTextNodes[i])
+        
+      }
     });
   }
 
